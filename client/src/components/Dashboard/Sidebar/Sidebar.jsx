@@ -74,12 +74,12 @@ const Sidebar = () => {
               <CustomerMenu />
               <SellerMenu />
 
-              <MenuItem
+              {/* <MenuItem
                 icon={BsGraphUp}
                 label='Statistics'
                 address='/dashboard'
               />
-              <AdminMenu />
+              <AdminMenu /> */}
             </nav>
           </div>
         </div>
