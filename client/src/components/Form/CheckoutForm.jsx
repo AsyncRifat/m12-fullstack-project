@@ -5,7 +5,7 @@ import useAxiosSecure from '../../hooks/useAxiosSecure';
 import useAuth from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
-const CheckoutForm = ({ totalPrice, orderData, closeModal }) => {
+const CheckoutForm = ({ totalPrice, orderData, closeModal, refetch }) => {
   const stripe = useStripe();
   const elements = useElements();
   const { user } = useAuth();
@@ -95,9 +95,16 @@ const CheckoutForm = ({ totalPrice, orderData, closeModal }) => {
             console.log('payment successful');
             toast.success('Order placed Successful');
           }
+
+          const { data: result } = await axiosSecure.patch(
+            `/quantity-update/${orderData?.plantId}`,
+            { quantityToUpdate: orderData?.quantity, status: 'decrease' }
+          );
+          console.log(result);
         } catch (error) {
           setCardError(error.message);
         } finally {
+          refetch();
           setProcessing(false);
           closeModal();
         }

@@ -6,18 +6,20 @@ export const useUserRole = () => {
   const [role, setRole] = useState(null);
   const [IsRoleLoading, setIsRoleLoading] = useState(true);
   const axiosSecure = useAxiosSecure();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
+    if (loading || !user?.email) {
+      return;
+    }
+
     const fetchUserRole = async () => {
-      const { data } = await axiosSecure(
-        `${import.meta.env.VITE_API_URL}/user/role/${user.email}`
-      );
+      const { data } = await axiosSecure(`/user/role/${user?.email}`); //${import.meta.env.VITE_API_URL}
       setRole(data?.role);
       setIsRoleLoading(false);
     };
     fetchUserRole();
-  }, [user, axiosSecure]);
+  }, [user, loading, axiosSecure]);
 
   // console.log(role);
 

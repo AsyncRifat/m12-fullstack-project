@@ -87,8 +87,7 @@ async function run() {
     // get user's role
     app.get('/user/role/:email', async (req, res) => {
       const email = req.params.email;
-      console.log(email);
-
+      // console.log(email);
       if (!email) {
         return res.status(400).send({ message: 'Email is required' });
       }
@@ -209,6 +208,28 @@ async function run() {
         res.status(500).send({ message: 'Not inserted data in database' });
       }
     });
+
+    // update plant quantity (increase/decrease)
+    app.patch('/quantity-update/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const { quantityToUpdate, status } = req.body;
+        console.log(quantityToUpdate, status);
+
+        const filter = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $inc: {
+            quantity:
+              status === 'increase' ? quantityToUpdate : -quantityToUpdate, //Increase or Decrease quantity
+          },
+        };
+        const result = await plantCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ success: false, message: 'Server error' });
+      }
+    });
+
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
     console.log(

@@ -3,17 +3,42 @@ import Heading from '../../components/Shared/Heading';
 import Button from '../../components/Shared/Button/Button';
 import PurchaseModal from '../../components/Modal/PurchaseModal';
 import { useState } from 'react';
-import { useLoaderData } from 'react-router';
+import { useParams } from 'react-router';
 import useAuth from '../../hooks/useAuth';
 import { useUserRole } from '../../hooks/useUserRole';
+import LoadingSpinner from '../../components/Shared/LoadingSpinner';
+import { useQuery } from '@tanstack/react-query';
+import { axiosSecure } from '../../hooks/useAxiosSecure';
+import EmptyState from '../../components/Shared/EmptyState';
 
 const PlantDetails = () => {
-  const singlePlantData = useLoaderData();
+  // const singlePlantData = useLoaderData();
+  const { id } = useParams();
   const { user } = useAuth();
-
   const [isOpen, setIsOpen] = useState(false);
 
-  const [role] = useUserRole();
+  const [role, isRoleLoading] = useUserRole();
+
+  // tanstack use
+  const {
+    data: singlePlantData,
+    isLoading,
+    refetch,
+    error,
+  } = useQuery({
+    queryKey: ['plant', id],
+    queryFn: async () => {
+      const { data } = await axiosSecure(`/plant/${id}`);
+      return data;
+    },
+  });
+  // console.log(singlePlantData);
+
+  if (isLoading || isRoleLoading) {
+    return <LoadingSpinner />;
+  } else if (error) {
+    return <EmptyState />;
+  }
 
   if (!singlePlantData || typeof singlePlantData !== 'object') {
     return (
@@ -29,6 +54,8 @@ const PlantDetails = () => {
   const closeModal = () => {
     setIsOpen(false);
   };
+
+  // console.log(role);
 
   return (
     <Container>
@@ -107,6 +134,7 @@ const PlantDetails = () => {
             closeModal={closeModal}
             isOpen={isOpen}
             singlePlantData={singlePlantData}
+            refetch={refetch}
           />
         </div>
       </div>

@@ -10,7 +10,7 @@ import CheckoutForm from '../Form/CheckoutForm';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK_KEY);
 
-const PurchaseModal = ({ closeModal, isOpen, singlePlantData }) => {
+const PurchaseModal = ({ closeModal, isOpen, singlePlantData, refetch }) => {
   const { user } = useAuth();
 
   // Total Price Calculation
@@ -144,6 +144,7 @@ const PurchaseModal = ({ closeModal, isOpen, singlePlantData }) => {
                 totalPrice={totalPrice}
                 orderData={orderData}
                 closeModal={closeModal}
+                refetch={refetch}
               />
             </Elements>
           </DialogPanel>
