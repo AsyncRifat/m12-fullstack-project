@@ -5,12 +5,15 @@ import PurchaseModal from '../../components/Modal/PurchaseModal';
 import { useState } from 'react';
 import { useLoaderData } from 'react-router';
 import useAuth from '../../hooks/useAuth';
+import { useUserRole } from '../../hooks/useUserRole';
 
 const PlantDetails = () => {
   const singlePlantData = useLoaderData();
   const { user } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
+
+  const [role] = useUserRole();
 
   if (!singlePlantData || typeof singlePlantData !== 'object') {
     return (
@@ -90,7 +93,9 @@ const PlantDetails = () => {
             <p className="font-bold text-3xl text-gray-500">Price: ${price}</p>
             <div>
               <Button
-                disabled={!user || user?.email === seller.email}
+                disabled={
+                  !user || user?.email === seller.email || role !== 'customer'
+                }
                 onClick={() => setIsOpen(true)}
                 label={user ? 'Purchase' : 'Login to purchase'}
               />
