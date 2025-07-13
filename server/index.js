@@ -48,6 +48,7 @@ async function run() {
   const db = client.db('plantdb');
   const plantCollection = db.collection('plants');
   const orderCollection = db.collection('orders');
+  const usersCollection = db.collection('users');
 
   try {
     // Generate jwt token
@@ -83,6 +84,47 @@ async function run() {
       }
     });
 
+    // save or payment a users in db
+    app.post('/user', async (req, res) => {
+      try {
+        const userData = req.body;
+        // console.log(userData);
+
+        userData.role = 'customer';
+        userData.created_at = new Date().toISOString();
+        userData.last_loggedIn = new Date().toISOString();
+        // return console.log(userData);
+
+        const alreadyExists = await usersCollection.findOne({
+          email: userData?.email,
+        });
+        // console.log('ami age thekei achi rifat vai', !!alreadyExists);
+
+        if (!!alreadyExists) {
+          await usersCollection.updateOne(
+            { email: userData?.email },
+            {
+              $set: {
+                last_loggedIn: new Date().toISOString(),
+              },
+            }
+          );
+
+          return res
+            .status(200)
+            .send({ message: 'User already exists', inserted: false });
+        }
+
+        const result = await usersCollection.insertOne(userData);
+        console.log('akta data insert holo vai', 'inserted:', !!result);
+
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // add a plant in db
     app.post('/add-plant', async (req, res) => {
       const plant = req.body;
@@ -110,7 +152,7 @@ async function run() {
     // create payment intent for order (eta evabe korar karon - basi secure)
     app.post('/create-payment-intent', async (req, res) => {
       const { plantId, quantity } = req.body;
-      console.log(plantId, quantity);
+      // console.log(plantId, quantity);
 
       const plant = await plantCollection.findOne({
         _id: new ObjectId(plantId),
