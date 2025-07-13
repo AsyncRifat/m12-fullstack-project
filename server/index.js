@@ -84,6 +84,19 @@ async function run() {
       }
     });
 
+    // get user's role
+    app.get('/user/role/:email', async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+
+      if (!email) {
+        return res.status(400).send({ message: 'Email is required' });
+      }
+
+      const result = await usersCollection.findOne({ email });
+      res.send(result);
+    });
+
     // save or payment a users in db
     app.post('/user', async (req, res) => {
       try {
