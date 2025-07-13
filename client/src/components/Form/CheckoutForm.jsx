@@ -66,8 +66,8 @@ const CheckoutForm = ({ totalPrice, orderData, closeModal }) => {
       console.log('[PaymentMethod]', paymentMethod);
     }
 
-    // taka katar pala ebar
-    // step 3: confrim payment
+    // taka katar pala ebar vai
+    // step 3: confirm payment
 
     const result = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
@@ -85,7 +85,7 @@ const CheckoutForm = ({ totalPrice, orderData, closeModal }) => {
     } else {
       setCardError();
       if (result.paymentIntent.status === 'succeeded') {
-        console.log(result);
+        // console.log(result);
 
         // save order data in db
         orderData.transactionId = result.paymentIntent.id;
@@ -106,26 +106,29 @@ const CheckoutForm = ({ totalPrice, orderData, closeModal }) => {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 bg-gray-100 p-6 rounded-xl shadow-lg w-full max-w-md mx-auto text-gray-700 mt-5"
-    >
-      <CardElement className="px-3 py-2.5 border  border-gray-300 rounded-xl" />
-      {cardError && <p className="text-red-600 text-xs">{cardError}</p>}
-      <button
-        type="submit"
-        disabled={!stripe || processing}
-        className="px-4 py-1.5 bg-lime-500 w-full rounded-xl"
+    <>
+      <h3 className="text-sm mt-5 text-gray-500">Payment Method :</h3>
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 bg-gray-100 p-6 rounded-xl shadow-lg w-full max-w-md mx-auto text-gray-700 mt-1 "
       >
-        {processing ? (
-          <PulseLoader className="pt-0.5" size={10} />
-        ) : (
-          <p>
-            Pay <strong>${totalPrice}</strong>
-          </p>
-        )}
-      </button>
-    </form>
+        <CardElement className="px-3 py-2.5 border  border-gray-300 rounded-xl" />
+        {cardError && <p className="text-red-600 text-xs">{cardError}</p>}
+        <button
+          type="submit"
+          disabled={!stripe || processing}
+          className="px-4 py-1.5 bg-lime-500 w-full rounded-xl"
+        >
+          {processing ? (
+            <PulseLoader className="pt-0.5" size={10} />
+          ) : (
+            <p>
+              Pay <strong>${totalPrice}</strong>
+            </p>
+          )}
+        </button>
+      </form>
+    </>
   );
 };
 
