@@ -51,6 +51,27 @@ async function run() {
   const usersCollection = db.collection('users');
 
   try {
+    // custom middleware for Admin verify
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.user?.email;
+      // console.log(email);
+      const user = await usersCollection.findOne({ email });
+      if (!user || user.role !== 'admin') {
+        return res.status(403).send({ message: 'Forbidden Access' });
+      }
+      next();
+    };
+    // custom middleware for Seller verify
+    const verifySeller = async (req, res, next) => {
+      const email = req.user?.email;
+      // console.log(email);
+      const user = await usersCollection.findOne({ email });
+      if (!user || user.role !== 'seller') {
+        return res.status(403).send({ message: 'Forbidden Access' });
+      }
+      next();
+    };
+
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
       const email = req.body;
@@ -84,6 +105,53 @@ async function run() {
       }
     });
 
+    // ----------- ##user's## -----------
+    // get all users for admin
+    app.get('/all-users', verifyToken, verifyAdmin, async (req, res) => {
+      // console.log(req.user);
+      const filter = {
+        email: { $ne: req?.user?.email }, // $ne ---> not equal
+      };
+      const result = await usersCollection.find(filter).toArray();
+      res.send(result);
+    });
+
+    // update user's role
+    app.patch(
+      '/user/role/update/:email',
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const { role } = req.body;
+        // console.log(role);
+        const email = req.params.email;
+        // console.log(email);
+        const updateDoc = {
+          $set: {
+            role,
+            status: 'verified',
+          },
+        };
+        const result = await usersCollection.updateOne({ email }, updateDoc);
+        // console.log(result);
+        res.send(result);
+      }
+    );
+
+    // become seller request
+    app.patch('/become-seller/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+      // console.log(email);
+      const updateDoc = {
+        $set: {
+          status: 'requested',
+        },
+      };
+      const result = await usersCollection.updateOne({ email }, updateDoc);
+      // console.log(result);
+      res.send(result);
+    });
+
     // get user's role
     app.get('/user/role/:email', async (req, res) => {
       const email = req.params.email;
@@ -96,7 +164,7 @@ async function run() {
       res.send(result);
     });
 
-    // save or payment a users in db
+    // save or payment a users in db (signUp , signIn , google Login)
     app.post('/user', async (req, res) => {
       try {
         const userData = req.body;
@@ -137,8 +205,9 @@ async function run() {
       }
     });
 
+    // ----------- ##plant## -----------
     // add a plant in db
-    app.post('/add-plant', async (req, res) => {
+    app.post('/add-plant', verifyToken, verifySeller, async (req, res) => {
       const plant = req.body;
       // console.log(plant);
       const result = await plantCollection.insertOne(plant);
@@ -161,7 +230,40 @@ async function run() {
       res.send(result);
     });
 
-    // create payment intent for order (eta evabe korar karon - basi secure)
+    // update plant quantity (increase/decrease)
+    app.patch('/quantity-update/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const { quantityToUpdate, status } = req.body;
+        console.log(quantityToUpdate, status);
+
+        const filter = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $inc: {
+            quantity:
+              status === 'increase' ? quantityToUpdate : -quantityToUpdate, //Increase or Decrease quantity
+          },
+        };
+        const result = await plantCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ success: false, message: 'Server error' });
+      }
+    });
+
+    // ----------- ##order's## -----------
+    // save order data in order collection
+    app.post('/order-info', async (req, res) => {
+      try {
+        const orderData = req.body;
+        const result = await orderCollection.insertOne(orderData);
+        res.status(201).send(result);
+      } catch (error) {
+        res.status(500).send({ message: 'Not inserted data in database' });
+      }
+    });
+
+    //  ##payment## -- create payment intent for order (eta more than secure - more secure)
     app.post('/create-payment-intent', async (req, res) => {
       const { plantId, quantity } = req.body;
       // console.log(plantId, quantity);
@@ -198,36 +300,67 @@ async function run() {
       }
     });
 
-    // save order data in order collection
-    app.post('/order-info', async (req, res) => {
-      try {
-        const orderData = req.body;
-        const result = await orderCollection.insertOne(orderData);
-        res.status(201).send(result);
-      } catch (error) {
-        res.status(500).send({ message: 'Not inserted data in database' });
-      }
-    });
+    //  -------- ## admin statistic ## --------     (verifyToken,)
+    app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
+      // const totalUser = await usersCollection.countDocuments({ role: 'admin' });   //filter accepted
+      const totalUser = await usersCollection.estimatedDocumentCount(); //filter not accepted
+      const totalPlant = await plantCollection.estimatedDocumentCount();
+      const totalOrder = await orderCollection.estimatedDocumentCount();
 
-    // update plant quantity (increase/decrease)
-    app.patch('/quantity-update/:id', async (req, res) => {
-      try {
-        const id = req.params.id;
-        const { quantityToUpdate, status } = req.body;
-        console.log(quantityToUpdate, status);
-
-        const filter = { _id: new ObjectId(id) };
-        const updatedDoc = {
-          $inc: {
-            quantity:
-              status === 'increase' ? quantityToUpdate : -quantityToUpdate, //Increase or Decrease quantity
+      // mongoDB aggregation
+      const pipeline = [
+        {
+          $addFields: {
+            createdAt: { $toDate: '$_id' },
           },
-        };
-        const result = await plantCollection.updateOne(filter, updatedDoc);
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ success: false, message: 'Server error' });
-      }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: '%Y-%m-%d',
+                date: '$createdAt',
+              },
+            },
+            revenue: { $sum: '$price' },
+            order: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            date: '$_id',
+            _id: 0,
+            revenue: 1,
+            order: 1,
+          },
+        },
+      ];
+      const aggregateResult = await orderCollection
+        .aggregate(pipeline)
+        .toArray();
+
+      // total revenue
+      const totalRevenue = aggregateResult.reduce(
+        (sum, data) => sum + data?.revenue,
+        0
+      );
+
+      res.send({
+        totalUser,
+        totalPlant,
+        totalOrder,
+        totalRevenue,
+        aggregateResult,
+      });
+
+      // const dataInfo = result.map(data => ({
+      //   date: data?._id,
+      //   totalRevenue: data?.totalRevenue,
+      //   totalOrder: data?.totalOrder,
+      // }));
+      // return res.send(dataInfo);
+      // প্রথম অবস্থায় _id দিয়ে date ছিলো। কিন্তু আমি পড়ে project করে _id কে date নাম দিছি। যেটা পরিবতন করব সেটা শূন্য (0) মান দিবো। পরিবতন না হলে ওয়ান (1) মান থাকবে। ------ আমি আবার এটাকে map করেও করতে পারি সেটা নিচে দেখলাম। -----
+      // array.reduce((accumulator, currentValue) => { ... }, initialValue)
     });
 
     // Send a ping to confirm a successful connection

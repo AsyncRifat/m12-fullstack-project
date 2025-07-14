@@ -21,7 +21,7 @@ const Sidebar = () => {
   const [role, isRoleLoading] = useUserRole();
   // console.log(role, isRoleLoading);
 
-  console.log(role);
+  // console.log(role);
 
   if (isRoleLoading) {
     return <LoadingSpinner />;

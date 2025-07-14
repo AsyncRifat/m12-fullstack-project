@@ -1,7 +1,6 @@
 import useAxiosSecure from './useAxiosSecure.jsx';
 import useAuth from './useAuth.js';
 import { useQuery } from '@tanstack/react-query';
-import LoadingSpinner from '../components/Shared/LoadingSpinner.jsx';
 
 export const useUserRole = () => {
   const axiosSecure = useAxiosSecure();
