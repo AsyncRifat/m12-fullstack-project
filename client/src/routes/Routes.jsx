@@ -50,6 +50,14 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: (
+          <p className="text-center text-2xl font-bold text-green-600">
+            Welcome My Website
+          </p>
+        ),
+      },
+      {
+        path: 'stats',
+        element: (
           <PrivateRoute>
             <AdminRoute>
               <Statistics />

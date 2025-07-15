@@ -263,6 +263,29 @@ async function run() {
       }
     });
 
+    // get all order info for customer verifyToken,
+    app.get('/orders/customer/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const filter = { 'customer.email': email };
+      const result = await orderCollection.find(filter).toArray();
+      console.log(result);
+      res.send(result);
+    });
+
+    // get all order info for seller
+    app.get(
+      '/orders/seller/:email',
+      verifyToken,
+      verifySeller,
+      async (req, res) => {
+        const email = req.params.email;
+        const filter = { 'seller.email': email };
+        const result = await orderCollection.find(filter).toArray();
+        console.log(result);
+        res.send(result);
+      }
+    );
+
     //  ##payment## -- create payment intent for order (eta more than secure - more secure)
     app.post('/create-payment-intent', async (req, res) => {
       const { plantId, quantity } = req.body;
